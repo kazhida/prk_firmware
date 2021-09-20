@@ -425,12 +425,36 @@ class Keyboard
     @offset_b = @cols.size * 2 - @offset_a - 1
   end
 
+  # Initialize for modulo architecture
+  #
+  # add attributes:
+  #   @i2c: I2C
+  #   @io_expanders: [IoExpander]
+  #   @translator: PositionTranslator
+  def init_modulo(i2c, io_expanders, layer_n_cols)
+    @i2c = i2c
+    @io_expanders = io_expanders
+    @io_expanders.each do |x|
+      x.init_pins(i2c)
+    end
+    @translator = PositionTranslator.new(io_expanders, layer_n_cols)
+    # fake attributes
+    @rows = 0..@io_expanders.length
+    @cols = 0..@io_expanders.max { |x| x.positions.length }
+    @anchor = true
+    @split = false
+  end
+
   # Input
   #   name:    default, map: [ [ :KC_A, :KC_B, :KC_LCTL,   :MACRO_1 ],... ]
   # ↓
   # Result
   #   layer: { default:      [ [ -0x04, -0x05, 0b00000001, :MACRO_1 ],... ] }
   def add_layer(name, map)
+    unless @translator.nil?
+      # map translate for modulo architecture
+      map = @translator.translate(map)
+    end
     new_map = Array.new(@rows.size)
     row_index = 0
     col_index = 0
@@ -641,36 +665,45 @@ class Keyboard
       @switches.clear
       @modifier = 0
 
-      # detect physical switches that are pushed
-      @rows.each_with_index do |row_pin, row|
-        gpio_put(row_pin, LO)
-        @cols.each_with_index do |col_pin, col|
-          if gpio_get(col_pin) == LO
-            col_data = if @anchor_left
-                         if @anchor
-                           # left
-                           col
-                         else
-                           # right
-                           (col - @offset_a) * -1 + @offset_b
+      if @i2c.nil? or @io_expanders.nil? or @io_expanders.empty?
+        # detect physical switches that are pushed
+        @rows.each_with_index do |row_pin, row|
+          gpio_put(row_pin, LO)
+          @cols.each_with_index do |col_pin, col|
+            if gpio_get(col_pin) == LO
+              col_data = if @anchor_left
+                           if @anchor
+                             # left
+                             col
+                           else
+                             # right
+                             (col - @offset_a) * -1 + @offset_b
+                           end
+                         else # right side is the anchor
+                           unless @anchor
+                             # left
+                             col
+                           else
+                             # right
+                             (col - @offset_a) * -1 + @offset_b
+                           end
                          end
-                       else # right side is the anchor
-                         unless @anchor
-                           # left
-                           col
-                         else
-                           # right
-                           (col - @offset_a) * -1 + @offset_b
-                         end
-                       end
-            @switches << [row, col_data]
+              @switches << [row, col_data]
+            end
+            # @type break: nil
+            break if @switches.size >= @cols.size
           end
-          # @type break: nil
-          break if @switches.size >= @cols.size
+          gpio_put(row_pin, HI)
         end
-        gpio_put(row_pin, HI)
+      else
+        # modulo architecture
+        @io_expanders.each_with_index do |x, r|
+          sw = x.read_pins(@i2c).map do |c|
+            [r, c]
+          end
+          @switches.concat sw
+        end
       end
-
       # TODO: more features
       $rgb.fifo_push(true) if $rgb && !@switches.empty?
 

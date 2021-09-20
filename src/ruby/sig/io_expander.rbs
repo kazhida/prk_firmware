@@ -1,0 +1,8 @@
+class IoExpander
+  @address: Integer
+  @positions: Array[Array[Integer]]
+  def initialize: (Integer, Array[Array[Integer]])
+  def init_pins: (I2C) -> void
+  def read_pins: (I2C) -> Array[Integer]
+end
+
