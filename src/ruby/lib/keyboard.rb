@@ -427,6 +427,9 @@ class Keyboard
     @partner_encoders = Array.new
     @macro_keycodes = Array.new
     @buffer = Buffer.new("picoirb")
+    @i2c = nil
+    @io_expanders = []
+    @translator = nil
   end
 
   attr_accessor :split, :uart_pin
@@ -496,12 +499,7 @@ class Keyboard
   end
 
   # Initialize for modulo architecture
-  #
-  # add attributes:
-  #   @i2c: I2C
-  #   @io_expanders: [IoExpander]
-  #   @translator: PositionTranslator
-  def init_modulo(i2c, io_expanders, layer_n_cols)
+  def init_modulo(i2c, layer_n_cols, io_expanders)
     @i2c = i2c
     @io_expanders = io_expanders
     @io_expanders.each do |x|
@@ -509,8 +507,8 @@ class Keyboard
     end
     @translator = PositionTranslator.new(io_expanders, layer_n_cols)
     # fake attributes
-    @rows = 0..@io_expanders.length
-    @cols = 0..@io_expanders.max { |x| x.positions.length }
+    @rows = (0..@io_expanders.length).map { |r| r + 1 }
+    @cols = (0..@io_expanders.map { |x| x.positions.length }.max || 29).map { |c| 29 - c}
     @anchor = true
     @split = false
   end
@@ -523,6 +521,7 @@ class Keyboard
   def add_layer(name, map)
     unless @translator.nil?
       # map translate for modulo architecture
+      # @type ivar @translator: PositionTranslator
       map = @translator.translate(map)
     end
     new_map = Array.new(@rows.size)
@@ -770,6 +769,7 @@ class Keyboard
       else
         # modulo architecture
         @io_expanders.each_with_index do |x, r|
+          # @type ivar @i2c: I2C
           sw = x.read_pins(@i2c).map do |c|
             [r, c]
           end

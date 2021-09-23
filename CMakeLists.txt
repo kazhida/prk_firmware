@@ -78,6 +78,8 @@ add_custom_target(ruby
   COMMAND ${RBC} -Bcore           core.rb
   COMMAND ${RBC} -Bkeyboard       keyboard.rb
   COMMAND ${RBC} -Brgb            rgb.rb
+  COMMAND ${RBC} -Bi2c            i2c.rb
+  COMMAND ${RBC} -Bio_expander    io_expander.rb
   COMMAND ${RBC} -Brotary_encoder rotary_encoder.rb
   COMMAND ${RBC} -Btud            tud.rb
   COMMAND ${RBC} -Brgb_task       rgb_task.rb

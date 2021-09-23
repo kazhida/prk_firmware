@@ -15,13 +15,7 @@ class IoExpander
   #
   def initialize(address, positions)
     @address = address
-    @positions = positions.map do |a|
-      if a.is_a?(Array)
-        [a[0].to_i, a[1].to_i]
-      else
-        nil
-      end
-    end
+    @positions = positions
   end
 
   # Initialize I/O expander device
@@ -36,58 +30,137 @@ class IoExpander
   end
 end
 
-
 #
 # Implement the actual I/O expander below
 #
 
-class TCA9554 < IoExpander
+class TCA9555 < IoExpander
 
+  attr_reader :positions
+  attr_reader :address
+
+  # constructor
+  #
+  # == Parameters:
+  # address::
+  #   Address of I/O expander device
+  # positions::
+  #   Positions assigned pins.
+  #   ex) [[3, 0], [3, 1], [3, 2], [3, 3], [3, 4], [3, 5], nil, nil ]
+  #
   def initialize(address, positions)
-    super(address + 0x20, positions)
+    @address = address
+    @positions = positions
   end
 
+  # Initialize I/O expander device
   def init_pins(i2c)
-    i2c.i2c_write(@address, [bytes([0x03, 0xFF]])
+    i2c.write(@address, [0x06, 0xFF])
+    i2c.write(@address, [0x07, 0xFF])
   end
 
+  # Read from I/O expander device
   def read_pins(i2c)
-    buffer = [0xFF]
-    i2c.i2c_write(@address, [bytes([0x00]])
-    i2c.i2c_write(@address, buffer)
-    0..8.each do |j|
-      mask = 1 << j
-      if buffer[0] & mask == 0
-        result << j
+    result = []
+    if @address & 0x80 == 0
+      buffer = [0xFF, 0xFF]
+      i2c.write(@address, [0x00])
+      i2c.read(@address, buffer)
+      buffer.each_index do |i|
+        (0..8).each do |j|
+          mask = 1 << j
+          if buffer[i] & mask == 0
+            result << i * 8 + j
+          end
+        end
       end
     end
     result
   end
 end
 
-class TCA9555 < IoExpander
+class TCA9554 < IoExpander
 
+  attr_reader :positions
+  attr_reader :address
+
+  # constructor
+  #
+  # == Parameters:
+  # address::
+  #   Address of I/O expander device
+  # positions::
+  #   Positions assigned pins.
+  #   ex) [[3, 0], [3, 1], [3, 2], [3, 3], [3, 4], [3, 5], nil, nil ]
+  #
   def initialize(address, positions)
-    super(address + 0x20, positions)
+    @address = address
+    @positions = positions
   end
 
+  # Initialize I/O expander device
   def init_pins(i2c)
-    i2c.i2c_write(@address, [bytes([0x06, 0xFF]])
-    i2c.i2c_write(@address, [bytes([0x07, 0xFF]])
+    i2c.write(@address, [0x03, 0xFF])
   end
 
+  # Read from I/O expander device
   def read_pins(i2c)
-    buffer = [0xFF, 0xFF]
-    i2c.i2c_write(@address, [bytes([0x00]])
-    i2c.i2c_write(@address, buffer)
-    buffer.each_index do |i|
-      0..8.each do |j|
+    result = []
+      if @address & 0x80 == 0
+      buffer = [0xFF]
+      i2c.write(@address, [0x00])
+      i2c.read(@address, buffer)
+      (0..8).each do |j|
         mask = 1 << j
-        if buffer[i] & mask == 0
-          result << i * 8 + j
+        if buffer[0] & mask == 0
+          result << j
         end
       end
     end
     result
+  end
+end
+
+# Keymap translator for each layer
+class PositionTranslator
+
+  # constructor
+  #
+  # == Parameters:
+  # expanders::
+  #   array of I/O expanders
+  # layer_n_cols::
+  #   assumed number of columns in the keymap
+  def initialize(expanders, layer_n_cols)
+    @n_rows = expanders.length
+    cols = expanders.map { |exp| exp.positions.size }
+    @n_cols = cols.max { |col| col } || 0
+    @index_map = {}
+    expanders.each do |exp|
+      exp.positions.each do |pos|
+        unless pos.nil?
+          r = pos[0]
+          c = pos[1]
+          i = r * layer_n_cols + c
+          @index_map[i] = pos
+        end
+      end
+    end
+  end
+
+  # Make translated key map
+  def translate(symbols)
+    result = (0..@n_rows).map do
+      Array.new(@n_cols, :KC_NO)
+    end
+    symbols.each_index do |i|
+      pos = @index_map[i]
+      unless pos.nil?
+        r = pos[0]
+        c = pos[1]
+        result[r][c] = symbols[i]
+      end
+    end
+    result.flatten
   end
 end

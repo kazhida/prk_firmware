@@ -1,6 +1,6 @@
 class I2C
-  def i2c_init: (Integer?, Integer?, Integer?, Integer?, Integer?) -> void
-  def i2c_deinit: () -> void
-  def i2c_write: (Integer, Array[Integer], bool?, Integer?) -> Integer
-  def i2c_read: (Integer, Array[Integer], bool?, Integer?) -> Integer
+  def init: (Integer?, Integer?, Integer?, Integer?, Integer?) -> void
+  def deinit: () -> void
+  def write: (Integer, Array[Integer], bool?, Integer?) -> Integer
+  def read: (Integer, Array[Integer], bool?, Integer?) -> Integer
 end

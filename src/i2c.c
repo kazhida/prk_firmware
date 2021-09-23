@@ -1,6 +1,5 @@
 #include "uart.h"
 
-#include "pico/stdlib.h"
 #include "hardware/i2c.h"
 #include "hardware/gpio.h"
 
@@ -23,10 +22,10 @@ c_i2c_init(mrb_vm *vm, mrb_value *v, int argc)
   uint scl = argc > 2 ? GET_INT_ARG(2) : SCL_PIN;
   gpio_set_function(scl, GPIO_FUNC_I2C);
 
-  uint baud = argc > 3 ? GET_INT_ARG(3) : BAUD_RATE;
-  i2c_id = argc > 4 ? GET_INT_ARG(4) : 0;
+  i2c_id = argc > 3 ? GET_INT_ARG(3) : 0;
+  uint baud = argc > 4 ? GET_INT_ARG(4) : BAUD_RATE;
 
-  i2c_init(I2C_ID, BAUD_RATE);
+  i2c_init(I2C_ID, baud);
 
   gpio_set_pulls(sda, true, false);
   gpio_set_pulls(scl, true, false);

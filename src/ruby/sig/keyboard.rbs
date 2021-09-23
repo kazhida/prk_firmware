@@ -48,6 +48,9 @@ class Keyboard
   @macro_keys: Array[Integer]
   @macro_key_numbers: Array[Integer | nil]
   @modifier: Integer
+  @i2c: I2C | nil
+  @io_expanders: Array[IoExpander]
+  @translator: PositionTranslator | nil
 
   attr_accessor split: bool
   attr_accessor uart_pin: Integer
@@ -63,7 +66,7 @@ class Keyboard
   def layer: () -> Symbol
   def set_anchor: (Symbol val) -> void
   def init_pins: (Array[Integer] rows, Array[Integer] cols) -> void
-  def init_modulo: (I2C, Array[IoExpander], Integer) -> void
+  def init_modulo: (I2C, Integer, Array[IoExpander]) -> void
   def add_layer: (Symbol name, Array[Symbol] map) -> void
   def define_mode_key: (Symbol key_name, [Symbol | Array[Symbol] | Proc | nil, Symbol | Proc, Integer?, Integer?] param) -> void
   def invert_sft: -> void
