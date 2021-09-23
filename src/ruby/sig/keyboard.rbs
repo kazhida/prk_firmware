@@ -50,7 +50,7 @@ class Keyboard
   @modifier: Integer
   @i2c: I2C | nil
   @io_expanders: Array[IoExpander]
-  @translator: PositionTranslator | nil
+  @rearranger: Rearranger | nil
 
   attr_accessor split: bool
   attr_accessor uart_pin: Integer

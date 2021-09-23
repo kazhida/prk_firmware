@@ -429,7 +429,7 @@ class Keyboard
     @buffer = Buffer.new("picoirb")
     @i2c = nil
     @io_expanders = []
-    @translator = nil
+    @rearranger = nil
   end
 
   attr_accessor :split, :uart_pin
@@ -505,7 +505,7 @@ class Keyboard
     @io_expanders.each do |x|
       x.init_pins(i2c)
     end
-    @translator = PositionTranslator.new(io_expanders, layer_n_cols)
+    @rearranger = Rearranger.new(io_expanders, layer_n_cols)
     # fake attributes
     @rows = (0..@io_expanders.length).map { |r| r + 1 }
     @cols = (0..@io_expanders.map { |x| x.positions.length }.max || 29).map { |c| 29 - c}
@@ -519,10 +519,10 @@ class Keyboard
   # Result
   #   layer: { default:      [ [ -0x04, -0x05, 0b00000001, :MACRO_1 ],... ] }
   def add_layer(name, map)
-    unless @translator.nil?
+    unless @rearranger.nil?
       # map translate for modulo architecture
       # @type ivar @translator: PositionTranslator
-      map = @translator.translate(map)
+      map = @rearranger.arrange(map)
     end
     new_map = Array.new(@rows.size)
     row_index = 0
@@ -1037,7 +1037,6 @@ class Keyboard
       end
     end
   end
-
 end
 
 $mutex = true

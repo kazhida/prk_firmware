@@ -1,8 +1,8 @@
-class PositionTranslator
+class Rearranger
   @n_rows: Integer
   @n_cols: Integer
   @index_map: Hash[Integer, Array[Integer]]
   def initialize: (Array[IoExpander], Integer) -> void
-  def translate: (Array[Symbol]) -> Array[Symbol]
+  def arrange: (Array[Symbol]) -> Array[Symbol]
 end
 

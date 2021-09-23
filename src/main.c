@@ -25,6 +25,8 @@
 #include "ruby/lib/rotary_encoder.c"
 #include "ruby/lib/rgb.c"
 #include "ruby/lib/i2c.c"
+#include "ruby/lib/io_expander.c"
+#include "ruby/lib/rearranger.c"
 #include "../lib/picoruby/cli/ruby/buffer.c"
 /* tasks */
 #include "ruby/lib/tud.c"
