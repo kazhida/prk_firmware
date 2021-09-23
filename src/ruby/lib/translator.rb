@@ -1,5 +1,5 @@
-# Keymap rearranger for each layer
-class Rearranger
+# Keymap translator for each layer
+class Translator
 
   # constructor
   #
@@ -26,7 +26,7 @@ class Rearranger
   end
 
   # Make arranged key map
-  def arrange(symbols)
+  def translate(symbols)
     result = (0..@n_rows).map do
       Array.new(@n_cols, :KC_NO)
     end

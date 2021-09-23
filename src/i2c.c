@@ -58,7 +58,7 @@ c_i2c_write(mrb_vm *vm, mrb_value *v, int argc)
   uint8_t data[8];    // todo: Is 8 bytes enough?
   size_t n = 8;
   if (n > array->n_stored) n = array->n_stored;
-  for (int i; i < n; i++) {
+  for (int i = 0; i < n; i++) {
     data[i] = array->data[i].i;
   }
 
@@ -81,7 +81,7 @@ c_i2c_read(mrb_vm *vm, mrb_value *v, int argc)
 
   int i2c_result = i2c_read_timeout_us(I2C_ID, address, data, n, no_stop, timeout);
 
-  for (int i; i < n; i++) {
+  for (int i = 0; i < n; i++) {
     array->data[i].i = data[i];
   }
 

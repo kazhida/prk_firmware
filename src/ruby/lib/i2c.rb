@@ -1,6 +1,7 @@
 class I2C
-  def init(sda, scl, i2c_id, baud)
-    i2c_init(sda, scl, i2c_id, baud)
+
+  def init(sda, scl, i2c_id, baud, slave)
+    i2c_init(sda, scl, i2c_id, baud, slave)
   end
 
   def deinit()

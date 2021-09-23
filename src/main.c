@@ -26,7 +26,7 @@
 #include "ruby/lib/rgb.c"
 #include "ruby/lib/i2c.c"
 #include "ruby/lib/io_expander.c"
-#include "ruby/lib/rearranger.c"
+#include "ruby/lib/translator.c"
 #include "../lib/picoruby/cli/ruby/buffer.c"
 /* tasks */
 #include "ruby/lib/tud.c"
@@ -179,6 +179,9 @@ int main() {
   mrbc_load_model(buffer);
   mrbc_load_model(rotary_encoder);
   mrbc_load_model(keyboard);
+  mrbc_load_model(i2c);
+//  mrbc_load_model(io_expander);
+//  mrbc_load_model(translator);
   mrbc_create_task(tud, 0);
   mrbc_create_task(rgb_task, 0);
   create_sandbox();
