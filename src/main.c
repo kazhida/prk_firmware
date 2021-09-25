@@ -180,8 +180,8 @@ int main() {
   mrbc_load_model(rotary_encoder);
   mrbc_load_model(keyboard);
   mrbc_load_model(i2c);
-//  mrbc_load_model(io_expander);
-//  mrbc_load_model(translator);
+//  mrbc_load_model(io_expander);   // todo: error at uncommented
+//  mrbc_load_model(translator);    // todo: error at uncommented
   mrbc_create_task(usb_task, 0);
   mrbc_create_task(rgb_task, 0);
   create_sandbox();

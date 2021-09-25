@@ -55,8 +55,8 @@ class TCA9555 < IoExpander
 
   # Initialize I/O expander device
   def init_pins(i2c)
-    i2c.write(@address, [0x06, 0xFF])
-    i2c.write(@address, [0x07, 0xFF])
+    i2c.write(@address, [0x06, 0xFF], false, 20)
+    i2c.write(@address, [0x07, 0xFF], false, 20)
   end
 
   # Read from I/O expander device
@@ -64,8 +64,8 @@ class TCA9555 < IoExpander
     result = []
     if @address & 0x80 == 0
       buffer = [0xFF, 0xFF]
-      i2c.write(@address, [0x00])
-      i2c.read(@address, buffer)
+      i2c.write(@address, [0x00], false, 20)
+      i2c.read(@address, buffer, false, 20)
       buffer.each_index do |i|
         (0..8).each do |j|
           mask = 1 << j
@@ -100,7 +100,7 @@ class TCA9554 < IoExpander
 
   # Initialize I/O expander device
   def init_pins(i2c)
-    i2c.write(@address, [0x03, 0xFF])
+    i2c.write(@address, [0x03, 0xFF], false, 20)
   end
 
   # Read from I/O expander device
@@ -108,8 +108,8 @@ class TCA9554 < IoExpander
     result = []
       if @address & 0x80 == 0
       buffer = [0xFF]
-      i2c.write(@address, [0x00])
-      i2c.read(@address, buffer)
+      i2c.write(@address, [0x00], false, 20)
+      i2c.read(@address, buffer, false, 20)
       (0..8).each do |j|
         mask = 1 << j
         if buffer[0] & mask == 0
