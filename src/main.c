@@ -20,19 +20,19 @@
 
 /* ruby */
 /* models */
-#include "ruby/lib/core.c"
-#include "ruby/lib/keyboard.c"
-#include "ruby/lib/rotary_encoder.c"
-#include "ruby/lib/rgb.c"
-#include "ruby/lib/i2c.c"
-#include "ruby/lib/io_expander.c"
-#include "ruby/lib/translator.c"
-#include "../lib/picoruby/cli/ruby/buffer.c"
+#include "ruby/app/models/core.c"
+#include "ruby/app/models/keyboard.c"
+#include "ruby/app/models/rotary_encoder.c"
+#include "ruby/app/models/rgb.c"
+#include "ruby/app/models/buffer.c"
+#include "ruby/app/models/i2c.c"
+#include "ruby/app/models/io_expander.c"
+#include "ruby/app/models/translator.c"
 /* tasks */
-#include "ruby/lib/tud.c"
-#include "ruby/lib/rgb_task.c"
+#include "ruby/app/tasks/usb_task.c"
+#include "ruby/app/tasks/rgb_task.c"
 #ifdef PRK_NO_MSC
-#include "ruby/lib/keymap.c"
+#include "ruby/app/keymap.c"
 #endif
 
 void
@@ -168,7 +168,7 @@ int main() {
 #endif
   CDC_INIT();
   GPIO_INIT();
-  TUD_INIT();
+  USB_INIT();
   UART_INIT();
   WS2812_INIT();
   ROTARY_ENCODER_INIT();
@@ -182,7 +182,7 @@ int main() {
   mrbc_load_model(i2c);
 //  mrbc_load_model(io_expander);
 //  mrbc_load_model(translator);
-  mrbc_create_task(tud, 0);
+  mrbc_create_task(usb_task, 0);
   mrbc_create_task(rgb_task, 0);
   create_sandbox();
   mrbc_define_method(0, mrbc_class_object, "autoreload_ready?", c_autoreload_ready_q);
