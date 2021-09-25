@@ -527,10 +527,12 @@ class Keyboard
     @io_expanders.each do |x|
       x.init_pins(i2c)
     end
-    @translator = Translator.new(io_expanders, layer_n_cols)
+    positions = io_expanders.map { |exp| exp.positions }
+    @translator = Translator.new(positions, layer_n_cols)
     # fake attributes
     @rows = (0..@io_expanders.length).map { |r| r + 1 }
-    @cols = (0..@io_expanders.map { |x| x.positions.length }.max || 29).map { |c| 29 - c}
+    n_cols = positions.map { |p| p.length }
+    @cols = (0..(n_cols.max || 0)).map { |c| 29 - c}
     @anchor = true
     @split = false
   end

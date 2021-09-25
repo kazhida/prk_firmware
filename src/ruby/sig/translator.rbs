@@ -1,8 +1,8 @@
 class Translator
   @n_rows: Integer
   @n_cols: Integer
-  @index_map: Hash[Integer, Array[Integer]]
-  def initialize: (Array[IoExpander], Integer) -> void
+  @position_map: Hash[Integer, Array[Integer]]
+  def initialize: (Array[Array[Array[Integer] | nil]], Integer) -> void
   def translate: (Array[Symbol]) -> Array[Symbol]
 end
 
