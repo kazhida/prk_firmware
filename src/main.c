@@ -26,8 +26,6 @@
 #include "ruby/app/models/rgb.c"
 #include "ruby/app/models/buffer.c"
 #include "ruby/app/models/i2c.c"
-#include "ruby/app/models/io_expander.c"
-#include "ruby/app/models/translator.c"
 /* tasks */
 #include "ruby/app/tasks/usb_task.c"
 #include "ruby/app/tasks/rgb_task.c"

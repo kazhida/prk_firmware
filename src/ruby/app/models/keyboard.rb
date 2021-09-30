@@ -440,8 +440,7 @@ class Keyboard
     @macro_keycodes = Array.new
     @buffer = Buffer.new("picoirb")
     @i2c = nil
-    @io_expanders = []
-    @rearranger = nil
+    @position_map = {}
   end
 
   attr_accessor :split, :uart_pin
@@ -521,20 +520,30 @@ class Keyboard
   end
 
   # Initialize for modulo architecture
-  def init_modulo(i2c, layer_n_cols, io_expanders)
+  def init_modulo(i2c, layer_n_cols, positions)
     @i2c = i2c
-    @io_expanders = io_expanders
-    @io_expanders.each do |x|
-      x.init_pins(i2c)
+    @position_map = {}
+    positions.each do |pos|
+      pos.each do |p|
+        unless p.nil?
+          r = p[0]
+          c = p[1]
+          i = r * layer_n_cols + c
+          @position_map[i] = p
+        end
+      end
     end
-    positions = io_expanders.map { |exp| exp.positions }
-    @translator = Translator.new(positions, layer_n_cols)
     # fake attributes
-    @rows = (0..@io_expanders.length).map { |r| r + 1 }
+    @rows = (0..positions.length).map { |r| r + 1 }
     n_cols = positions.map { |p| p.length }
     @cols = (0..(n_cols.max || 0)).map { |c| 29 - c}
     @anchor = true
     @split = false
+    (0..4).each do |a|
+      # @type ivar @i2c: I2C
+      i2c.write(0x20 + a, [0x06, 0xFF], false, 20)
+      i2c.write(0x20 + a, [0x07, 0xFF], false, 20)
+    end
   end
 
   # Input
@@ -543,10 +552,21 @@ class Keyboard
   # Result
   #   layer: { default:      [ [ -0x04, -0x05, 0b00000001, :MACRO_1 ],... ] }
   def add_layer(name, map)
-    unless @translator.nil?
+    unless @position_map.nil? || @position_map.empty?
       # map translate for modulo architecture
-      # @type ivar @translator: Translator
-      map = @translator.translate(map)
+      result = (0..@n_rows).map do
+        Array.new(@n_cols, :KC_NO)
+      end
+      map.each_index do |i|
+        pos = @position_map[i]
+        unless pos.nil?
+          r = pos[0]
+          c = pos[1]
+          result[r][c] = map[i]
+        end
+      end
+      result.flatten
+      map = result.flatten
     end
     new_map = Array.new(@rows.size)
     row_index = 0
@@ -781,7 +801,7 @@ class Keyboard
       @switches.clear
       @modifier = 0
 
-      if @i2c.nil? or @io_expanders.nil? or @io_expanders.empty?
+      if @i2c.nil?
         # detect physical switches that are pushed
         @rows.each_with_index do |row_pin, row|
           gpio_put(row_pin, LO)
@@ -813,9 +833,21 @@ class Keyboard
         end
       else
         # modulo architecture
-        @io_expanders.each_with_index do |x, r|
+        (0..4).each do |r|
+          buffer = [0xFF, 0xFF]
           # @type ivar @i2c: I2C
-          sw = x.read_pins(@i2c).map do |c|
+          @i2c.write(0x20 + r, [0x00], false, 20)
+          @i2c.read(0x20 + r, buffer, false, 20)
+          sw = []
+          buffer.each_index do |i|
+            (0..8).each do |j|
+              mask = 1 << j
+              if buffer[i] & mask == 0
+                sw << i * 8 + j
+              end
+            end
+          end
+          sw.map do |c|
             [r, c]
           end
           @switches.concat sw
