@@ -441,7 +441,7 @@ class Keyboard
     @buffer = Buffer.new("picoirb")
     @i2c = nil
     @io_expanders = []
-    @rearranger = nil
+    @translator = nil
   end
 
   attr_accessor :split, :uart_pin
@@ -813,9 +813,9 @@ class Keyboard
         end
       else
         # modulo architecture
-        @io_expanders.each_with_index do |x, r|
+        @io_expanders.each_with_index do |exp, r|
           # @type ivar @i2c: I2C
-          sw = x.read_pins(@i2c).map do |c|
+          sw = exp.read_pins(@i2c).map do |c|
             [r, c]
           end
           @switches.concat sw

@@ -1,0 +1,35 @@
+class IoExpander
+  @address: Integer
+  @positions: Array[Array[Integer] | nil]
+  def positions: -> Array[Array[Integer] | nil]
+  def initialize: (Integer, Array[Array[Integer] | nil]) -> void
+  def init_pins: (I2C) -> void
+  def read_pins: (I2C) -> Array[Integer]
+end
+
+class Translator
+  @n_rows: Integer
+  @n_cols: Integer
+  @position_map: Hash[Integer, Array[Integer]]
+  def initialize: (Array[Array[Array[Integer] | nil]], Integer) -> void
+  def translate: (Array[Symbol]) -> Array[Symbol]
+end
+
+class TCA9555
+  @address: Integer
+  @positions: Array[Array[Integer] | nil]
+  def positions: -> Array[Array[Integer] | nil]
+  def initialize: (Integer, Array[Array[Integer] | nil]) -> void
+  def init_pins: (I2C) -> void
+  def read_pins: (I2C) -> Array[Integer]
+end
+
+class TCA9554
+  @address: Integer
+  @positions: Array[Array[Integer] | nil]
+  def positions: -> Array[Array[Integer] | nil]
+  def initialize: (Integer, Array[Array[Integer] | nil]) -> void
+  def init_pins: (I2C) -> void
+  def read_pins: (I2C) -> Array[Integer]
+end
+

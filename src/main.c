@@ -26,11 +26,12 @@
 #include "ruby/app/models/rgb.c"
 #include "ruby/app/models/buffer.c"
 #include "ruby/app/models/i2c.c"
-#include "ruby/app/models/io_expander.c"
-#include "ruby/app/models/translator.c"
+#include "ruby/app/models/modulo.c"
 /* tasks */
 #include "ruby/app/tasks/usb_task.c"
 #include "ruby/app/tasks/rgb_task.c"
+#include "modulo.h"
+
 #ifdef PRK_NO_MSC
 #include "ruby/app/keymap.c"
 #endif
@@ -173,6 +174,7 @@ int main() {
   WS2812_INIT();
   ROTARY_ENCODER_INIT();
   I2C_INIT();
+  MODULO_INIT();
   SANDBOX_INIT();
   mrbc_load_model(core);
   mrbc_load_model(rgb);
@@ -180,8 +182,7 @@ int main() {
   mrbc_load_model(rotary_encoder);
   mrbc_load_model(keyboard);
   mrbc_load_model(i2c);
-//  mrbc_load_model(io_expander);   // todo: error at uncommented
-//  mrbc_load_model(translator);    // todo: error at uncommented
+  mrbc_load_model(modulo);
   mrbc_create_task(usb_task, 0);
   mrbc_create_task(rgb_task, 0);
   create_sandbox();
