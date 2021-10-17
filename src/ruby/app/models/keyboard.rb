@@ -440,7 +440,7 @@ class Keyboard
     @macro_keycodes = Array.new
     @buffer = Buffer.new("picoirb")
     @i2c = nil
-    @position_map = {}
+    puts "Initialized Keyboard"
   end
 
   attr_accessor :split, :uart_pin
@@ -520,30 +520,21 @@ class Keyboard
   end
 
   # Initialize for modulo architecture
-  def init_modulo(i2c, layer_n_cols, positions)
+  def init_modulo(i2c)
+    puts "Initializing Modulo ..."
     @i2c = i2c
-    @position_map = {}
-    positions.each do |pos|
-      pos.each do |p|
-        unless p.nil?
-          r = p[0]
-          c = p[1]
-          i = r * layer_n_cols + c
-          @position_map[i] = p
-        end
-      end
-    end
     # fake attributes
-    @rows = (0..positions.length).map { |r| r + 1 }
-    n_cols = positions.map { |p| p.length }
-    @cols = (0..(n_cols.max || 0)).map { |c| 29 - c}
+    @rows = [1, 2, 3, 4]
+    @cols = [29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14]
     @anchor = true
     @split = false
+    puts "Initializing Modulo I2C ..."
     (0..4).each do |a|
       # @type ivar @i2c: I2C
-      i2c.write(0x20 + a, [0x06, 0xFF], false, 20)
-      i2c.write(0x20 + a, [0x07, 0xFF], false, 20)
+#       i2c.write(0x20 + a, [0x06, 0xFF], false, 20)
+#       i2c.write(0x20 + a, [0x07, 0xFF], false, 20)
     end
+    puts "Initialized Modulo"
   end
 
   # Input
@@ -552,22 +543,6 @@ class Keyboard
   # Result
   #   layer: { default:      [ [ -0x04, -0x05, 0b00000001, :MACRO_1 ],... ] }
   def add_layer(name, map)
-    unless @position_map.nil? || @position_map.empty?
-      # map translate for modulo architecture
-      result = (0..@n_rows).map do
-        Array.new(@n_cols, :KC_NO)
-      end
-      map.each_index do |i|
-        pos = @position_map[i]
-        unless pos.nil?
-          r = pos[0]
-          c = pos[1]
-          result[r][c] = map[i]
-        end
-      end
-      result.flatten
-      map = result.flatten
-    end
     new_map = Array.new(@rows.size)
     row_index = 0
     col_index = 0
@@ -836,8 +811,8 @@ class Keyboard
         (0..4).each do |r|
           buffer = [0xFF, 0xFF]
           # @type ivar @i2c: I2C
-          @i2c.write(0x20 + r, [0x00], false, 20)
-          @i2c.read(0x20 + r, buffer, false, 20)
+#           @i2c.write(0x20 + r, [0x00], false, 20)
+#           @i2c.read(0x20 + r, buffer, false, 20)
           sw = []
           buffer.each_index do |i|
             (0..8).each do |j|
@@ -849,8 +824,9 @@ class Keyboard
           end
           sw.map do |c|
             [r, c]
+          end.each do |s|
+            @switches << s
           end
-          @switches.concat sw
         end
       end
       # TODO: more features
