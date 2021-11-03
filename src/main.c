@@ -22,6 +22,7 @@
 /* ruby */
 /* models */
 #include "ruby/app/models/core.c"
+#include "ruby/app/models/keycode.c"
 #include "ruby/app/models/keyboard.c"
 #include "ruby/app/models/rotary_encoder.c"
 #include "ruby/app/models/rgb.c"
@@ -185,6 +186,7 @@ int main() {
   mrbc_load_model(rgb);
   mrbc_load_model(buffer);
   mrbc_load_model(rotary_encoder);
+  mrbc_load_model(keycode);
   mrbc_load_model(keyboard);
   mrbc_load_model(i2c);
   mrbc_load_model(io_expander);
