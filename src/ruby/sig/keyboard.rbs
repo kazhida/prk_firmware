@@ -28,33 +28,17 @@ class Keyboard
 
   @before_filters: Array[^() -> void]
   @keymaps: Hash[Symbol, Array[Array[Integer | Symbol | Proc]]]
-  @mode_keys: Array[{
-    layer:             Symbol,
-    on_release:        Integer | Array[Integer] | Proc | nil,
-    on_hold:           Integer | Symbol | Proc,
-    release_threshold: Integer,
-    repush_threshold:  Integer,
-    switch:            [Integer, Integer],
-    prev_state:        Symbol,
-    pushed_at:         Integer,
-    released_at:       Integer
-    }
-    ]
+  @mode_keys: Array[ModeKey]
   @switches: Array[Array[Integer]]
   @layer_names: Array[Symbol]
   @layer: Symbol
-  @anchor: bool
-  @anchor_left: bool
   @rows: Array[Integer]
   @cols: Array[Integer]
-  @offset_a: Integer
-  @offset_b: Integer
   @locked_layer: Symbol | nil
   @keycodes: Array[String]
   @macro_keys: Array[Integer]
   @macro_key_numbers: Array[Integer | nil]
   @modifier: Integer
-  @split_style: Symbol
   @i2c: I2C | nil
   @io_expanders: Array[IoExpander]
 
@@ -70,12 +54,9 @@ class Keyboard
   def report_hid : (Integer, String) -> void
   def initialize: -> void
   def layer: () -> Symbol
-  def set_anchor: (Symbol val) -> void
-  def split_style=: (Symbol style) -> void
   def init_pins: (Array[Integer] rows, Array[Integer] cols) -> void
   def init_modulo: (I2C, Integer, Array[IoExpander]) -> void
   def add_layer: (Symbol name, Array[Symbol] map) -> void
-  def calculate_col_position: (Integer col_index) -> Integer
   def find_keycode_index: (Symbol key) -> (Integer | Symbol)
   def define_mode_key: (Symbol key_name, [Symbol | Array[Symbol] | Proc | nil, Symbol | Proc, Integer?, Integer?] param) -> void
   def invert_sft: -> void

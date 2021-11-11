@@ -17,11 +17,6 @@ class Keyboard
     @switches = Array.new
     @layer_names = Array.new
     @layer = :default
-    @split = false
-    @split_style = STANDARD_SPLIT
-    @anchor = true
-    @anchor_left = true # so-called "master left"
-    @uart_pin = 1
     $rgb = nil
     $encoders = Array.new
     @partner_encoders = Array.new
@@ -31,8 +26,7 @@ class Keyboard
     @io_expanders = []
   end
 
-  attr_accessor :split, :uart_pin
-  attr_reader :layer, :split_style
+  attr_reader :layer
 
   # TODO: OLED, SDCard
   def append(feature)
@@ -42,54 +36,14 @@ class Keyboard
       $rgb = feature
     when RotaryEncoder
       # @type var feature: RotaryEncoder
-      if @split
-        feature.create_keycodes(@partner_encoders.size)
-        if @anchor_left
-          if @anchor == feature.left? # XNOR
-            feature.init_pins
-            $encoders << feature
-          end
-        else
-          if @anchor != feature.left? #XOR
-            feature.init_pins
-            $encoders << feature
-          end
-        end
-        if @anchor && (@anchor_left != feature.left?)
-          @partner_encoders << feature
-        end
-      else
-        feature.init_pins
-        $encoders << feature
-      end
-    end
-  end
-
-  # val should be treated as `:left` if it's anything other than `:right`
-  def set_anchor(val)
-    @anchor_left = false if val == :right
-  end
-
-  def split_style=(style)
-    case style
-    when STANDARD_SPLIT, RIGHT_SIDE_FLIPPED_SPLIT
-      @split_style = style
+      feature.init_pins
+      $encoders << feature
     else
-      # NOTE: fall back
-      @split_style = STANDARD_SPLIT
+      # no-op
     end
   end
 
   def init_pins(rows, cols)
-    if @split
-      sleep 2 # Wait until USB ready
-      @anchor = tud_mounted?
-      if @anchor
-        uart_rx_init(@uart_pin)
-      else
-        uart_tx_init(@uart_pin)
-      end
-    end
     @rows = rows
     @cols = cols
     @rows.each do |pin|
@@ -102,9 +56,6 @@ class Keyboard
       gpio_set_dir(pin, GPIO_IN);
       gpio_pull_up(pin);
     end
-    # for split type
-    @offset_a = (@cols.size / 2.0).ceil_to_i
-    @offset_b = @cols.size * 2 - @offset_a - 1
   end
 
   # Initialize for modulo architecture
@@ -119,8 +70,6 @@ class Keyboard
     @rows = (0..@io_expanders.length).map { |r| r + 1 }
     n_cols = positions.map { |p| p.length }
     @cols = (0..(n_cols.max || 0)).map { |c| 29 - c}
-    @anchor = true
-    @split = false
   end
 
   # Input
@@ -132,12 +81,10 @@ class Keyboard
     new_map = Array.new(@rows.size)
     row_index = 0
     col_index = 0
-    @entire_cols_size = @split ? @cols.size * 2 : @cols.size
     map.each do |key|
       new_map[row_index] = Array.new(@cols.size) if col_index == 0
-      col_position = calculate_col_position(col_index)
-      new_map[row_index][col_position] = find_keycode_index(key)
-      if col_index == @entire_cols_size - 1
+      new_map[row_index][col_index] = find_keycode_index(key)
+      if col_index == @cols.size - 1
         col_index = 0
         row_index += 1
       else
@@ -146,21 +93,6 @@ class Keyboard
     end
     @keymaps[name] = new_map
     @layer_names << name
-  end
-
-  def calculate_col_position(col_index)
-    return col_index unless @split
-
-    case @split_style
-    when STANDARD_SPLIT
-      col_index
-    when RIGHT_SIDE_FLIPPED_SPLIT
-      if col_index < @cols.size
-        col_index
-      else
-        @entire_cols_size - (col_index - @cols.size) - 1
-      end
-    end
   end
 
   def find_keycode_index(key)
@@ -228,17 +160,7 @@ class Keyboard
               # @type var on_hold: Proc
               on_hold
             end
-            @mode_keys << {
-              layer:             layer,
-              on_release:        on_release_action,
-              on_hold:           on_hold_action,
-              release_threshold: (release_threshold || 0),
-              repush_threshold:  (repush_threshold || 0),
-              switch:            [row_index, col_index],
-              prev_state:        :released,
-              pushed_at:         0,
-              released_at:       0,
-            }
+            @mode_keys << ModeKey.new(layer, on_release_action, on_hold_action, release_threshold, repush_threshold, row_index, col_index)
           end
         end
       end
@@ -275,7 +197,7 @@ class Keyboard
   def action_on_release(mode_key)
     case mode_key.class
     when Integer
-      # @type var mode_key: Integer
+      # @type var mode_key.rb: Integer
       if mode_key < -255
         @keycodes << ((mode_key + 0x100) * -1).chr
         @modifier |= 0b00000010
@@ -284,7 +206,7 @@ class Keyboard
       end
     when Array
       0 # `steep check` will fail if you remove this line 🤔
-      # @type var mode_key: Array[Integer]
+      # @type var mode_key.rb: Array[Integer]
       mode_key.each do |key|
         if key < -255
           @keycodes << ((key + 0x100) * -1).chr
@@ -296,7 +218,7 @@ class Keyboard
         end
       end
     when Proc
-      # @type var mode_key: Proc
+      # @type var mode_key.rb: Proc
       mode_key.call
     end
   end
@@ -310,7 +232,7 @@ class Keyboard
       # @type var mode_key: Symbol
       @layer = mode_key
     when Proc
-      # @type var mode_key: Proc
+      # @type var mode_key.rb: Proc
       mode_key.call
     end
   end
@@ -347,13 +269,6 @@ class Keyboard
     @keycodes = Array.new
     # To avoid unintentional report on startup
     # which happens only on Sparkfun Pro Micro RP2040
-    if @split
-      sleep_ms 100
-      while true
-        data = uart_getc
-        break if data.nil?
-      end
-    end
     default_sleep = 10
     while true
       now = board_millis
@@ -362,199 +277,140 @@ class Keyboard
       @switches.clear
       @modifier = 0
 
-      if @i2c.nil? or @io_expanders.nil? or @io_expanders.empty?
-        # detect physical switches that are pushed
-        @rows.each_with_index do |row_pin, row|
-          gpio_put(row_pin, LO)
-          @cols.each_with_index do |col_pin, col|
-            if gpio_get(col_pin) == LO
-              col_data = if @anchor_left
-                           if @anchor
-                             # left
-                             col
-                           else
-                             # right
-                             (col - @offset_a) * -1 + @offset_b
-                           end
-                         else # right side is the anchor
-                           unless @anchor
-                             # left
-                             col
-                           else
-                             # right
-                             (col - @offset_a) * -1 + @offset_b
-                           end
-                         end
-              @switches << [row, col_data]
-            end
-            # @type break: nil
-            break if @switches.size >= @cols.size
-          end
-          gpio_put(row_pin, HI)
+      @io_expanders.each_with_index do |exp, r|
+        # @type ivar @i2c: I2C
+        sw = exp.read_pins(@i2c).map do |c|
+          [r, c]
         end
-      else
-        # modulo architecture
-        @io_expanders.each_with_index do |exp, r|
-          # @type ivar @i2c: I2C
-          sw = exp.read_pins(@i2c).map do |c|
-            [r, c]
-          end
-          @switches.concat sw
-        end
+        @switches.concat sw
       end
       # TODO: more features
       $rgb.fifo_push(true) if $rgb && !@switches.empty?
 
-      # Receive switches from partner
-      if @split && @anchor
-        sleep_ms 5
-        while true
-          data = uart_getc
-          break unless data
-          # @type var data: Integer
-          if data > 246
-            @partner_encoders.each { |encoder| encoder.call_proc_if(data) }
+      desired_layer = @layer
+      @mode_keys.each do |mode_key|
+        next if mode_key.layer != @layer
+        if @switches.include?(mode_key.switch)
+          case mode_key.prev_state
+          when :released
+            mode_key.pushed_at = now
+            mode_key.prev_state = :pushed
+            on_hold = mode_key.on_hold
+            if on_hold.is_a?(Symbol) &&
+              @layer_names.index(desired_layer).to_i < @layer_names.index(on_hold).to_i
+              desired_layer = on_hold
+            end
+          when :pushed
+            if !mode_key.on_hold.is_a?(Symbol) && (now - mode_key.pushed_at > mode_key.release_threshold)
+              action_on_hold(mode_key.on_hold)
+            end
+          when :pushed_then_released
+            if now - mode_key.released_at <= mode_key.repush_threshold
+              mode_key.prev_state = :pushed_then_released_then_pushed
+            end
+          when :pushed_then_released_then_pushed
+            action_on_release(mode_key.on_release)
           else
-            switch = [data >> 5, data & 0b00011111]
-            # To avoid chattering
-            @switches << switch unless @switches.include?(switch)
+            # no-op
+          end
+        else
+          case mode_key.prev_state
+          when :pushed
+            if now - mode_key.pushed_at <= mode_key.release_threshold
+              action_on_release(mode_key.on_release)
+              mode_key.prev_state = :pushed_then_released
+            else
+              mode_key.prev_state = :released
+            end
+            mode_key.released_at = now
+            @layer = @prev_layer || :default
+            @prev_layer = nil
+          when :pushed_then_released
+            if now - mode_key.released_at > mode_key.release_threshold
+              mode_key.prev_state = :released
+            end
+          when :pushed_then_released_then_pushed
+            mode_key.prev_state = :released
+          else
+            # no-op
           end
         end
       end
 
-      if @anchor
-        desired_layer = @layer
-        @mode_keys.each do |mode_key|
-          next if mode_key[:layer] != @layer
-          if @switches.include?(mode_key[:switch])
-            case mode_key[:prev_state]
-            when :released
-              mode_key[:pushed_at] = now
-              mode_key[:prev_state] = :pushed
-              on_hold = mode_key[:on_hold]
-              if on_hold.is_a?(Symbol) &&
-                  @layer_names.index(desired_layer).to_i < @layer_names.index(on_hold).to_i
-                desired_layer = on_hold
-              end
-            when :pushed
-              if !mode_key[:on_hold].is_a?(Symbol) && (now - mode_key[:pushed_at] > mode_key[:release_threshold])
-                action_on_hold(mode_key[:on_hold])
-              end
-            when :pushed_then_released
-              if now - mode_key[:released_at] <= mode_key[:repush_threshold]
-                mode_key[:prev_state] = :pushed_then_released_then_pushed
-              end
-            when :pushed_then_released_then_pushed
-              action_on_release(mode_key[:on_release])
-            end
-          else
-            case mode_key[:prev_state]
-            when :pushed
-              if now - mode_key[:pushed_at] <= mode_key[:release_threshold]
-                action_on_release(mode_key[:on_release])
-                mode_key[:prev_state] = :pushed_then_released
-              else
-                mode_key[:prev_state] = :released
-              end
-              mode_key[:released_at] = now
-              @layer = @prev_layer || :default
-              @prev_layer = nil
-            when :pushed_then_released
-              if now - mode_key[:released_at] > mode_key[:release_threshold]
-                mode_key[:prev_state] = :released
-              end
-            when :pushed_then_released_then_pushed
-              mode_key[:prev_state] = :released
-            end
-          end
-        end
+      if @layer != desired_layer
+        @prev_layer ||= @layer
+        action_on_hold(desired_layer)
+      end
 
-        if @layer != desired_layer
-          @prev_layer ||= @layer
-          action_on_hold(desired_layer)
+      keymap = @keymaps[@locked_layer || @layer]
+      @switches.each do |switch|
+        keycode = keymap[switch[0]][switch[1]]
+        next unless keycode.is_a?(Integer)
+        if keycode < -255 # Key with SHIFT
+          @keycodes << ((keycode + 0x100) * -1).chr
+          @modifier |= 0b00100000
+        elsif keycode < 0 # Normal keys
+          @keycodes << (keycode * -1).chr
+        else # Modifier keys
+          @modifier |= keycode
         end
+      end
 
-        keymap = @keymaps[@locked_layer || @layer]
-        @switches.each do |switch|
-          keycode = keymap[switch[0]][switch[1]]
-          next unless keycode.is_a?(Integer)
-          if keycode < -255 # Key with SHIFT
-            @keycodes << ((keycode + 0x100) * -1).chr
-            @modifier |= 0b00100000
-          elsif keycode < 0 # Normal keys
-            @keycodes << (keycode * -1).chr
-          else # Modifier keys
-            @modifier |= keycode
-          end
-        end
-
-        # Macro
-        macro_keycode = @macro_keycodes.shift
-        if macro_keycode
-          if macro_keycode < 0
-            @modifier |= 0b00100000
-            @keycodes << (macro_keycode * -1).chr
-          else
-            @keycodes << macro_keycode.chr
-          end
-          default_sleep = 40 # To avoid accidental skip
+      # Macro
+      macro_keycode = @macro_keycodes.shift
+      if macro_keycode
+        if macro_keycode < 0
+          @modifier |= 0b00100000
+          @keycodes << (macro_keycode * -1).chr
         else
-          default_sleep = 10
+          @keycodes << macro_keycode.chr
         end
-
-        (6 - @keycodes.size).times do
-          @keycodes << "\000"
-        end
-
-        @before_filters.each do |block|
-          block.call
-        end
-
-        $encoders.each do |encoder|
-          encoder.consume_rotation_anchor
-        end
-
-        if @ruby_mode
-          code = @keycodes[0].ord
-          c = nil
-          if @ruby_mode_stop
-            @ruby_mode_stop = false if code == 0
-          elsif code > 0
-            if @modifier & 0b00100010 > 1 # with SHIFT
-              if code <= KEYCODE_SFT[:KC_RPRN].to_i
-                c = LETTER[code + @SHIFT_LETTER_OFFSET_A]
-              elsif code <= KEYCODE_SFT[:KC_QUES].to_i
-                c = LETTER[code + @SHIFT_LETTER_OFFSET_UNDS]
-              end
-            elsif code < @SHIFT_LETTER_THRESHOLD_A
-              c = LETTER[code]
-            end
-            @ruby_mode_stop = true
-          end
-          if c
-            @buffer.put(c)
-            @buffer.refresh_screen
-          end
-        end
-        report_hid(@modifier, @keycodes.join)
-
-        if @switches.empty? && @locked_layer.nil?
-          @layer = :default
-        elsif @locked_layer
-          # @type ivar @locked_layer: Symbol
-          @layer = @locked_layer
-        end
+        default_sleep = 40 # To avoid accidental skip
       else
-        $encoders.each do |encoder|
-          data = encoder.consume_rotation_partner
-          uart_putc_raw(data) if data && data > 0
+        default_sleep = 10
+      end
+
+      (6 - @keycodes.size).times do
+        @keycodes << "\000"
+      end
+
+      @before_filters.each do |block|
+        block.call
+      end
+
+      $encoders.each do |encoder|
+        encoder.consume_rotation_anchor
+      end
+
+      if @ruby_mode
+        code = @keycodes[0].ord
+        c = nil
+        if @ruby_mode_stop
+          @ruby_mode_stop = false if code == 0
+        elsif code > 0
+          if @modifier & 0b00100010 > 1 # with SHIFT
+            if code <= KEYCODE_SFT[:KC_RPRN].to_i
+              c = LETTER[code + @SHIFT_LETTER_OFFSET_A]
+            elsif code <= KEYCODE_SFT[:KC_QUES].to_i
+              c = LETTER[code + @SHIFT_LETTER_OFFSET_UNDS]
+            end
+          elsif code < @SHIFT_LETTER_THRESHOLD_A
+            c = LETTER[code]
+          end
+          @ruby_mode_stop = true
         end
-        @switches.each do |switch|
-          # 0b11111111
-          #   ^^^      row number (0 to 7)
-          #      ^^^^^ col number (0 to 31)
-          uart_putc_raw((switch[0] << 5) + switch[1])
+        if c
+          @buffer.put(c)
+          @buffer.refresh_screen
         end
+      end
+      report_hid(@modifier, @keycodes.join)
+
+      if @switches.empty? && @locked_layer.nil?
+        @layer = :default
+      elsif @locked_layer
+        # @type ivar @locked_layer: Symbol
+        @layer = @locked_layer
       end
 
       time = default_sleep - (board_millis - now)

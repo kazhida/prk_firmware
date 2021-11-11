@@ -24,30 +24,30 @@ class KeyboardTest < MrubycTestCase
     assert_equal (0x28)*(-1), @kbd.find_keycode_index(:KC_ENT)
   end
 
-  description "split_style should be :standard_split or :right_side_flipped_split"
-  def split_stype_case
-    assert_equal :standard_split, @kbd.split_style
-    @kbd.split_style = :right_side_flipped_split
-    assert_equal :right_side_flipped_split, @kbd.split_style
-    @kbd.split_style = :this_is_invalid
-    assert_equal :standard_split, @kbd.split_style
-  end
+#   description "split_style should be :standard_split or :right_side_flipped_split"
+#   def split_stype_case
+#     assert_equal :standard_split, @kbd.split_style
+#     @kbd.split_style = :right_side_flipped_split
+#     assert_equal :right_side_flipped_split, @kbd.split_style
+#     @kbd.split_style = :this_is_invalid
+#     assert_equal :standard_split, @kbd.split_style
+#   end
 
-  description "should return col_index as it is"
-  def standard_calculate_col_position_case
-    @kbd.split = true
-    @kbd.split_style = :standard_split
-    @kbd.add_layer :default, %i(KC_A KC_B KC_C KC_D   KC_E KC_F KC_G KC_H)
-    assert_equal 3, @kbd.calculate_col_position(3)
-  end
+#   description "should return col_index as it is"
+#   def standard_calculate_col_position_case
+#     @kbd.split = true
+#     @kbd.split_style = :standard_split
+#     @kbd.add_layer :default, %i(KC_A KC_B KC_C KC_D   KC_E KC_F KC_G KC_H)
+#     assert_equal 3, @kbd.calculate_col_position(3)
+#   end
 
-  description "should return calculated col_index"
-  def flipped_calculate_col_position_case
-    @kbd.split = true
-    @kbd.split_style = :right_side_flipped_split
-    @kbd.add_layer :default, %i(KC_A KC_B KC_C KC_D   KC_E KC_F KC_G KC_H)
-    assert_equal 2, @kbd.calculate_col_position(3)
-  end
+#   description "should return calculated col_index"
+#   def flipped_calculate_col_position_case
+#     @kbd.split = true
+#     @kbd.split_style = :right_side_flipped_split
+#     @kbd.add_layer :default, %i(KC_A KC_B KC_C KC_D   KC_E KC_F KC_G KC_H)
+#     assert_equal 2, @kbd.calculate_col_position(3)
+#   end
 
   description "raise"
   def raise_layer_case
