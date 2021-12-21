@@ -46,6 +46,7 @@ add_executable(${PROJECT}
   src/usb_descriptors.c
   src/gpio.c
   src/uart.c
+  src/i2c.c
   src/ws2812.c
   src/rotary_encoder.c
   lib/picoruby/cli/sandbox.c
@@ -82,6 +83,8 @@ endif()
 add_custom_target(models
   COMMAND ${RBC} -Bfloat_ext      float_ext.rb
   COMMAND ${RBC} -Bkeyboard       keyboard.rb
+  COMMAND ${RBC} -Bi2c            i2c.rb
+  COMMAND ${RBC} -Bmodulo         modulo.rb
   COMMAND ${RBC} -Brgb            rgb.rb
   COMMAND ${RBC} -Brotary_encoder rotary_encoder.rb
   COMMAND ${RBC} -Bbuffer         buffer.rb
@@ -127,6 +130,7 @@ target_link_libraries(${PROJECT}
   picoruby
   hardware_pio
   hardware_pwm
+  hardware_i2c
   pico_multicore
   hardware_flash
 )
