@@ -13,6 +13,7 @@
 #include "gpio.h"
 #include "usb_descriptors.h"
 #include "uart.h"
+#include "i2c.h"
 #include "ws2812.h"
 #include "rotary_encoder.h"
 #include "../lib/picoruby/cli/sandbox.h"
@@ -23,6 +24,8 @@
 #include "ruby/app/models/keyboard.c"
 #include "ruby/app/models/rotary_encoder.c"
 #include "ruby/app/models/rgb.c"
+#include "ruby/app/models/i2c.c"
+#include "ruby/app/models/modulo.c"
 #include "ruby/app/models/buffer.c"
 /* tasks */
 #include "ruby/app/tasks/usb_task.c"
@@ -177,10 +180,13 @@ int main() {
   WS2812_INIT();
   ROTARY_ENCODER_INIT();
   SANDBOX_INIT();
+  I2C_INIT();
   mrbc_load_model(float_ext);
   mrbc_load_model(rgb);
   mrbc_load_model(buffer);
   mrbc_load_model(rotary_encoder);
+  mrbc_load_model(i2c);
+  mrbc_load_model(modulo);
   mrbc_load_model(keyboard);
   mrbc_create_task(usb_task, 0);
   mrbc_create_task(rgb_task, 0);

@@ -1,0 +1,6 @@
+class I2C
+  def initialize: (Integer, Integer, ?bool, ?Integer) -> void
+  def deinit: () -> void
+  def write: (Integer, data, ?bool, ?Integer) -> Integer
+  def read: (Integer, data, ?bool, ?Integer) -> Integer
+end
