@@ -6,3 +6,11 @@ class IoExpander
   def init_pins: (I2C) -> void
   def read_pins: (I2C) -> Array[Integer]
 end
+
+class Translator
+  @n_rows: Integer
+  @n_cols: Integer
+  @position_map: Hash[Integer, Array[Integer]]
+  def initialize: (Array[Array[Array[Integer] | nil]], Integer) -> void
+  def translate: (Array[Symbol]) -> Array[Symbol]
+end

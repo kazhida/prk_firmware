@@ -459,6 +459,9 @@ class Keyboard
     @macro_keycodes = Array.new
     @buffer = Buffer.new("picoirb")
     @scan_mode = :matrix
+    @i2c = nil
+    @io_expanders = []
+    @translator = nil
   end
 
   attr_accessor :split, :uart_pin
@@ -513,7 +516,7 @@ class Keyboard
 
   def set_scan_mode(mode)
     case mode
-    when :matrix, :direct
+    when :matrix, :direct, :modulo
       @scan_mode = mode
     else
       puts 'Scan mode only support :matrix and :direct. (default: :matrix)'
@@ -556,12 +559,35 @@ class Keyboard
     init_pins([], pins)
   end
 
+  # Initialize for modulo architecture
+  def init_modulo(i2c, layer_n_cols, io_expanders)
+    @i2c = i2c
+    @io_expanders = io_expanders
+    @io_expanders.each do |x|
+      x.init_pins(i2c)
+    end
+    positions = io_expanders.map { |exp| exp.positions }
+    @translator = Translator.new(positions, layer_n_cols)
+    # fake attributes
+    @rows = (0..@io_expanders.length).map { |r| r + 1 }
+    n_cols = positions.map { |p| p.length }
+    @cols = (0..(n_cols.max || 0)).map { |c| 29 - c}
+    @anchor = true
+    @split = false
+    set_scan_mode :modulo
+  end
+
   # Input
   #   name:    default, map: [ [ :KC_A, :KC_B, :KC_LCTL,   :MACRO_1 ],... ]
   # ↓
   # Result
   #   layer: { default:      [ [ -0x04, -0x05, 0b00000001, :MACRO_1 ],... ] }
   def add_layer(name, map)
+    unless @translator.nil?
+      # map translate for modulo architecture
+      # @type ivar @translator: Translator
+      map = @translator.translate(map)
+    end
     new_map = Array.new(@rows.size)
     row_index = 0
     col_index = 0
@@ -805,7 +831,7 @@ class Keyboard
       @switches.clear
       @modifier = 0
 
-      @switches = @scan_mode == :matrix ? scan_matrix! : scan_direct!
+      @switches = @scan_mode == :matrix ? scan_matrix! : :direct ? scan_direct! : scan_modulo!
 
       # TODO: more features
       $rgb.fifo_push(true) if $rgb && !@switches.empty?
@@ -1020,6 +1046,16 @@ class Keyboard
       end
     end
     return switches
+  end
+
+  def scan_modulo!
+    @io_expanders.each_with_index do |exp, r|
+      # @type ivar @i2c: I2C
+      sw = exp.read_pins(@i2c).map do |c|
+        [r, c]
+      end
+      @switches.concat sw
+    end
   end
 
   #
