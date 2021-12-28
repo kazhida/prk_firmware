@@ -59,6 +59,9 @@ class Keyboard
   @message: Integer
   @encoders: Array[RotaryEncoder]
   @scan_mode: Symbol
+  @i2c = I2C | nil
+  @io_expanders = Array[IoExpander]
+  @translator = Translator | nil
 
   attr_accessor split: bool
   attr_accessor uart_pin: Integer
@@ -99,4 +102,5 @@ class Keyboard
   def ruby: () -> void
   def scan_matrix!: () -> Array[Array[Integer]]
   def scan_direct!: () -> Array[Array[Integer]]
+  def scan_modulo!: () -> Array[Array[Integer]]
 end
